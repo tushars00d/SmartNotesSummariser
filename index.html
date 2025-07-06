@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Notes Summarizer - AWS AI</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #232526 0%, #414345 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
+            border-radius: 2px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            margin-bottom: 20px;
+        }
+
+        .aws-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(45deg, #ff9a00, #ffb733);
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 15px rgba(255, 154, 0, 0.3);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
+        }
+
+        .panel-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #ffffff;
+        }
+
+        .panel-title i {
+            font-size: 1.3rem;
+            color: #4ecdc4;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+
+        .text-input {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: vertical;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 20px rgba(78, 205, 196, 0.2);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .text-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .select-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .select-input:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 15px rgba(78, 205, 196, 0.2);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #45b7d1, #96c93d);
+            color: white;
+            box-shadow: 0 8px 25px rgba(69, 183, 209, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(69, 183, 209, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .summary-output {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 150px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            font-size: 1.05rem;
+            color: #e2e8f0;
+        }
+
+        .summary-output.has-content {
+            border-color: rgba(78, 205, 196, 0.3);
+            background: rgba(78, 205, 196, 0.05);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #4ecdc4;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .loading i {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #4ecdc4;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            border-color: rgba(78, 205, 196, 0.3);
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #ff6b6b;
+        }
+
+        .feature-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        .feature-desc {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(45deg, #10b981, #059669);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.error {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+            box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .panel {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-brain"></i> Smart Notes Summarizer</h1>
+            <p>AI-Powered Text Summarization using AWS Services</p>
+            <div class="aws-badge">
+                <i class="fab fa-aws"></i>
+                Powered by AWS Free Tier
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <div class="panel">
+                <h2 class="panel-title">
+                    <i class="fas fa-edit"></i>
+                    Input Notes
+                </h2>
+                
+                <div class="input-group">
+                    <label class="input-label">Enter your notes or text to summarize:</label>
+                    <textarea 
+                        id="inputText" 
+                        class="text-input" 
+                        placeholder="Paste your notes, articles, or any text here. The AI will analyze and provide an intelligent summary...
+
+Examples:
+• Meeting notes
+• Research articles
+• Study materials
+• Blog posts
+• Documentation"></textarea>
+                </div>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <label class="input-label">Summary Type:</label>
+                        <select id="summaryType" class="select-input">
+                            <option value="concise">Concise Summary</option>
+                            <option value="detailed">Detailed Summary</option>
+                            <option value="bullet">Bullet Points</option>
+                            <option value="executive">Executive Summary</option>
+                        </select>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="input-label">Length:</label>
+                        <select id="summaryLength" class="select-input">
+                            <option value="short">Short (2-3 sentences)</option>
+                            <option value="medium">Medium (1 paragraph)</option>
+                            <option value="long">Long (2-3 paragraphs)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                    <button id="summarizeBtn" class="btn btn-primary">
+                        <i class="fas fa-magic"></i>
+                        Summarize with AI
+                    </button>
+                    
+                    <button id="clearBtn" class="btn btn-secondary">
+                        <i class="fas fa-refresh"></i>
+                        Clear All
+                    </button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">
+                    <i class="fas fa-sparkles"></i>
+                    AI Summary
+                </h2>
+                
+                <div class="loading" id="loadingIndicator">
+                    <i class="fas fa-spinner"></i>
+                    <p>AWS AI is processing your text...</p>
+                </div>
+                
+                <div id="summaryOutput" class="summary-output">
+                    Your AI-generated summary will appear here...
+                    
+                    ✨ Features:
+                    • Intelligent text analysis
+                    • Multiple summary styles
+                    • AWS Bedrock AI integration
+                    • Real-time processing
+                    • Free to use
+                </div>
+
+                <div class="stats" id="statsContainer" style="display: none;">
+                    <div class="stat-card">
+                        <div class="stat-value" id="originalWords">0</div>
+                        <div class="stat-label">Original Words</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="summaryWords">0</div>
+                        <div class="stat-label">Summary Words</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="compressionRatio">0%</div>
+                        <div class="stat-label">Compression</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 20px; display: flex; gap: 15px; flex-wrap: wrap;">
+                    <button id="copyBtn" class="btn btn-secondary" style="display: none;">
+                        <i class="fas fa-copy"></i>
+                        Copy Summary
+                    </button>
+                    
+                    <button id="downloadBtn" class="btn btn-secondary" style="display: none;">
+                        <i class="fas fa-download"></i>
+                        Download
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h3 class="feature-title">AWS Bedrock AI</h3>
+                <p class="feature-desc">
+                    Uses advanced AI models like Claude and Titan for intelligent text summarization
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-cloud"></i>
+                </div>
+                <h3 class="feature-title">Serverless Architecture</h3>
+                <p class="feature-desc">
+                    Built on AWS Lambda and API Gateway for scalable, cost-effective processing
+                </p>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <h3 class="feature-title">100% Free</h3>
+                <p class="feature-desc">
+                    Utilizes AWS Free Tier services - no costs for typical usage patterns
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">
+        <span id="toastMessage"></span>
+    </div>
+
+    <script>
+        // Demo mode - simulates AWS integration
+        const DEMO_MODE = true;
+        
+        // Sample demo responses for different summary types
+        const demoResponses = {
+            'concise': {
+                'short': 'This text discusses key concepts and provides actionable insights. The main themes focus on practical applications and strategic implementation.',
+                'medium': 'This comprehensive text covers multiple important topics with detailed explanations and examples. The content provides valuable insights into best practices, methodologies, and strategic approaches. Key takeaways include actionable recommendations and implementation guidelines.',
+                'long': 'This extensive document presents a thorough analysis of complex topics with comprehensive coverage of key concepts and methodologies. The content explores various aspects of the subject matter, providing detailed explanations, practical examples, and strategic insights. The text offers valuable perspectives on implementation approaches, best practices, and potential challenges. Key recommendations include systematic planning, careful execution, and continuous monitoring for optimal results.'
+            },
+            'detailed': {
+                'short': 'Detailed analysis reveals core principles and strategic frameworks for effective implementation.',
+                'medium': 'The detailed examination of this content reveals several critical components and strategic frameworks. Key elements include systematic approaches to problem-solving, comprehensive planning methodologies, and practical implementation strategies. The analysis highlights important considerations for successful execution and long-term sustainability.',
+                'long': 'This detailed analysis provides comprehensive insights into the subject matter through systematic examination of key components and strategic frameworks. The content demonstrates thorough understanding of complex concepts, practical methodologies, and implementation strategies. Critical elements include strategic planning processes, systematic problem-solving approaches, and comprehensive evaluation methods. The analysis reveals important patterns, identifies key success factors, and provides actionable recommendations for effective implementation. Long-term considerations include sustainability planning, continuous improvement processes, and adaptive strategy development.'
+            },
+            'bullet': {
+                'short': '• Main concept focuses on practical implementation\n• Key strategy involves systematic approach\n• Results demonstrate effective outcomes',
+                'medium': '• Primary focus on strategic implementation and best practices\n• Systematic approach to problem-solving and planning\n• Comprehensive methodology for effective execution\n• Key success factors include proper planning and monitoring\n• Actionable recommendations for immediate implementation',
+                'long': '• Comprehensive analysis of strategic frameworks and implementation methodologies\n• Systematic approach to complex problem-solving and solution development\n• Detailed examination of best practices and proven strategies\n• Key success factors include thorough planning, systematic execution, and continuous monitoring\n• Strategic recommendations for both short-term and long-term implementation\n• Critical considerations for sustainability and scalability\n• Actionable insights for immediate practical application\n• Framework for ongoing evaluation and improvement processes'
+            },
+            'executive': {
+                'short': 'Executive Summary: Strategic analysis reveals key opportunities for systematic implementation and measurable outcomes.',
+                'medium': 'Executive Summary: This analysis presents strategic insights and actionable recommendations for effective implementation. Key findings indicate strong potential for systematic approaches to achieve measurable outcomes. Critical success factors include comprehensive planning, systematic execution, and continuous monitoring. Recommended actions focus on immediate implementation of proven strategies.',
+                'long': 'Executive Summary: This comprehensive analysis provides strategic insights and detailed recommendations for effective implementation across multiple domains. Key findings reveal significant opportunities for systematic approaches to achieve measurable and sustainable outcomes. The analysis identifies critical success factors including comprehensive strategic planning, systematic execution methodologies, and continuous performance monitoring. Primary recommendations focus on immediate implementation of proven strategies, establishment of clear metrics for success measurement, and development of long-term sustainability frameworks. Strategic implications suggest strong potential for scalable solutions with measurable impact. Recommended next steps include detailed planning phase, stakeholder alignment, and phased implementation approach.'
+            }
+        };
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        function initializeApp() {
+            const summarizeBtn = document.getElementById('summarizeBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const inputText = document.getElementById('inputText');
+
+            // Event listeners
+            summarizeBtn.addEventListener('click', handleSummarize);
+            clearBtn.addEventListener('click', handleClear);
+            copyBtn.addEventListener('click', handleCopy);
+            downloadBtn.addEventListener('click', handleDownload);
+            inputText.addEventListener('input', handleInputChange);
+
+            // Initialize with sample text
+            inputText.value = `Machine Learning and Artificial Intelligence have revolutionized modern computing and business operations. These technologies enable computers to learn from data without explicit programming, creating systems that can recognize patterns, make predictions, and automate complex decision-making processes.
+
+The applications of AI and ML span across numerous industries including healthcare, finance, retail, and manufacturing. In healthcare, AI assists in medical diagnosis, drug discovery, and personalized treatment plans. Financial institutions use ML for fraud detection, algorithmic trading, and risk assessment. Retail companies leverage these technologies for recommendation systems, inventory management, and customer service automation.
+
+Key benefits include improved efficiency, reduced costs, enhanced accuracy, and the ability to process vast amounts of data in real-time. However, challenges such as data privacy, algorithmic bias, and the need for skilled professionals remain significant considerations.
+
+The future of AI and ML looks promising with developments in deep learning, natural language processing, and computer vision. Organizations investing in these technologies today are positioning themselves for competitive advantages in tomorrow's digital economy.`;
+        }
+
+        async function handleSummarize() {
+            const inputText = document.getElementById('inputText').value.trim();
+            const summaryType = document.getElementById('summaryType').value;
+            const summaryLength = document.getElementById('summaryLength').value;
+            
+            if (!inputText) {
+                showToast('Please enter some text to summarize', 'error');
+                return;
+            }
+
+            if (inputText.length < 50) {
+                showToast('Please enter at least 50 characters for meaningful summarization', 'error');
+                return;
+            }
+
+            try {
+                setLoadingState(true);
+                
+                if (DEMO_MODE) {
+                    // Simulate AWS API call delay
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    const summary = demoResponses[summaryType][summaryLength];
+                    displaySummary(summary, inputText);
+                } else {
+                    // Real AWS integration would go here
+                    const summary = await callAWSAPI(inputText, summaryType, summaryLength);
+                    displaySummary(summary, inputText);
+                }
+                
+                showToast('Summary generated successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Summarization error:', error);
+                showToast('Error generating summary. Please try again.', 'error');
+            } finally {
+                setLoadingState(false);
+            }
+        }
+
+        async function callAWSAPI(text, type, length) {
+            // This would be the actual AWS API call
+            // For now, returning demo response
+            return demoResponses[type][length];
+        }
+
+        function displaySummary(summary, originalText) {
+            const summaryOutput = document.getElementById('summaryOutput');
+            const statsContainer = document.getElementById('statsContainer');
+            const copyBtn = document.getElementById('copyBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            
+            summaryOutput.textContent = summary;
+            summaryOutput.classList.add('has-content');
+            
+            // Update statistics
+            const originalWords = originalText.split(/\s+/).length;
+            const summaryWords = summary.split(/\s+/).length;
+            const compressionRatio = Math.round((1 - summaryWords / originalWords) * 100);
+            
+            document.getElementById('originalWords').textContent = originalWords;
+            document.getElementById('summaryWords').textContent = summaryWords;
+            document.getElementById('compressionRatio').textContent = compressionRatio + '%';
+            
+            statsContainer.style.display = 'grid';
+            copyBtn.style.display = 'inline-flex';
+            downloadBtn.style.display = 'inline-flex';
+        }
+
+        function handleClear() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('summaryOutput').textContent = 'Your AI-generated summary will appear here...\n\n✨ Features:\n• Intelligent text analysis\n• Multiple summary styles\n• AWS Bedrock AI integration\n• Real-time processing\n• Free to use';
+            document.getElementById('summaryOutput').classList.remove('has-content');
+            document.getElementById('statsContainer').style.display = 'none';
+            document.getElementById('copyBtn').style.display = 'none';
+            document.getElementById('downloadBtn').style.display = 'none';
+            
+            showToast('Content cleared successfully', 'success');
+        }
+
+        function handleCopy() {
+            const summaryText = document.getElementById('summaryOutput').textContent;
+            navigator.clipboard.writeText(summaryText).then(() => {
+                showToast('Summary copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy text', 'error');
+            });
+        }
+
+        function handleDownload() {
+            const summaryText = document.getElementById('summaryOutput').textContent;
+            const blob = new Blob([summaryText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ai-summary.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('Summary downloaded successfully!', 'success');
+        }
+
+        function handleInputChange() {
+            const inputText = document.getElementById('inputText').value;
+            const summarizeBtn = document.getElementById('summarizeBtn');
+            
+            if (inputText.trim().length > 0) {
+                summarizeBtn.disabled = false;
+            } else {
+                summarizeBtn.disabled = true;
+            }
+        }
+
+        function setLoadingState(isLoading) {
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const summarizeBtn = document.getElementById('summarizeBtn');
+            
+            if (isLoading) {
+                loadingIndicator.classList.add('active');
+                summarizeBtn.disabled = true;
+                summarizeBtn.innerHTML = '<i class="fas fa-spinner"></i> Processing...';
+            } else {
+                loadingIndicator.classList.remove('active');
+                summarizeBtn.disabled = false;
+                summarizeBtn.innerHTML = '<i class="fas fa-magic"></i> Summarize with AI';
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
